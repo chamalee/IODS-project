@@ -9,5 +9,9 @@
 date()
 
 ```
-The text continues here.
 
+```
+I am feeling excited. I expect to learn basically R in this course.  I received an email about this course from university.
+GitHub repository : 
+https://github.com/chamalee/IODS-project
+```
