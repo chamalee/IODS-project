@@ -1,13 +1,166 @@
-# Insert chapter 2 title here
+# Regression and model validation
 
-*Describe the work you have done this week and summarize your learning.*
-
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
+*This week I have covered data wrangling and linear regression analysis. *
 
 ```{r}
 date()
 ```
 
-Here we go again...
+```{r}
+learning2014 <- read.csv(file = "data/learning2014.csv", header = TRUE)
+str(learning2014)
+dim(learning2014)
+```
+
+### 1. Information of dataset
+
+This dataset contains data of 183 participants from a course which was collected in 2014. This dataset has 7 columns as follows.
+
+1. Gender (Gender: M (Male), F (Female))
+2. Age (in years) derived from the date of birth
+3. Attitude (Global attitude towards statistics)
+4. Deep  (ASSIST scale)
+5. Strategic  (ASSIST scale)
+6. Surface  (ASSIST scale)
+7. Points (Exam points)
+
+Background of measures:
+
+Measures A and C are based on parts A and C in ASSIST (Approaches and Study Skills Inventory for Students)
+http://www.etl.tla.ed.ac.uk/publications.html#measurement and D is based on SATS (Survey of Attitudes Toward Statistics)
+http://www.evaluationandstatistics.com/
+
+The items of the central measure in this study (ASSIST B) are named so that the connections to the corresponding dimensions (Deep/SUrface/STrategic) can be easily seen.
+
+### 2. Graphical overview of the data and  summaries of the variables 
+
+```{r}
+# access the GGally and ggplot2 libraries
+library(GGally)
+library(ggplot2)
+
+# create a more advanced plot matrix with ggpairs() : draws all possible scatter plots from the columns of a data frame, resulting in a scatter plot matrix.
+p <- ggpairs(learning2014, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+# draw the plot
+p
+```
+
+### Interpret the results
+
+From above graphical overview, we can see the relationships between the variables. It shows the correlations  between different variables and distributions of each variables with respect to 'gender' variable.
+
+The colour of plots is defined with the 'gender' variable. Pink color plots correspond to Female and green color for Male. 
+
+In this graphical overview, we can see the correlations between all variables. We have a negative correlation between points and age. The trend is that when age increases points decreases. And there is a positive correlation between points are attitudes. The trend is that when attitude increases point increases. If we consider correlation between surf variable and deep variable, there is a strong correlation in males where as a weak correlation in females. However, we can also observe that there are approximately twice number of  more female than male. 
+
+###  3. Fit a regression model 
+
+```{r}
+# a scatter plot of points versus attitude
+library(ggplot2)
+qplot(attitude, points, data = learning2014) + geom_smooth(method = "lm")
+
+# fit a linear model # create a regression model with multiple explanatory variables
+my_model <- lm(points ~ attitude + stra + deep, data = learning2014)
+
+# print out a summary of the model
+summary(my_model)
+```
+
+### Interpret the results
+
+Linear model:
+formula = points ~ attitude + stra + deep
+
+The best model is found by minimizing the prediction errors (residuals) that model would make.
+Goal is to minimize the sum of squared residuals.  The parameters of residuals are as follows.
+ 
+Parameters of Residuals:
+
+Min  -17.5239, 1Q -3.4276, Median 0.5474, 3Q 3.8220, Max 11.5112.
+ 
+Coefficients give the estimates of the model parameters corresponding to each variable along with the intercept. Intercept corresponds to the value in y-axis where linear model intersects y-axis.
+
+ Coefficients:
+   
+ (Intercept)  11.3915     
+ attitude      3.5254     
+ stra          0.9621       
+ deep         -0.7492   
+
+P-values: 
+
+The P-value which corresponds to attitude is very small. Therefore, we can conclude there is a strong correlation  between the points variable and attitude variable. Due to high p-value of deep variable, there is the least correlation  between points variable and deep variable. P-values are as follows.
+
+ attitude       4.44e-09 ***
+ stra           0.07489 .  
+ deep           0.31974  
+
+We can even observe standard error values of parameter estimates from  Std. Error column in the summary - table of coefficients.
+ 
+###  Remove less correlated variable
+
+deep variable does not have a statistically significant relationship with the target variable; points.
+
+```{r}
+# a scatter plot of points versus attitude
+library(ggplot2)
+qplot(attitude, points, data = learning2014) + geom_smooth(method = "lm")
+
+# fit a linear model # create a regression model with multiple explanatory variables
+my_model <- lm(points ~ attitude + stra , data = learning2014)
+
+# print out a summary of the model
+summary(my_model)
+```
+
+
+###  4. Relationship between explanatory variables and the target variables
+
+Here, it was considered, points as the target variable and attitude, stra and deep as the explanatory variables. It implies we are trying to estimate  points variable as a multiple linear model of attitude, stra and deep variables. We can see that there is a statistically significant relationship between exam points and attitude, but not with deep. This means that deep does not interpret anything about exam points, but the attitude do interpret. Therefore, deep variable was removed from the consideration and remodelled only with attitude and stra variables.
+
+###  Multiple R squared of the model
+
+With attitude + stra + deep variables -> Multiple R-squared:  0.2097 -> approximately 20%
+With attitude + stra  variables ->  Multiple R-squared:  0.2048 -> approximately 20%
+
+Multiple R-squared implies the multiple correlation coefficient between three or more variables.  It implies  how strong the linear relationship is.  In other words, how well the regression model fits the observed data. This value ranges from 0 to 1.
+For example, an R-squared of 20% reveals that 20% of the data fit the regression model. Generally, a higher R-squared indicates a better fit for the model. In this case, we can see after we remove deep variable, Multiple R-squared approximately remains unchanged. That is because deep variable does not have a high impact towards point variable.
+
+###  5. Diagnostic plots
+
+```{r}
+# a scatter plot of points versus attitude
+# create a regression model with multiple explanatory variables
+my_model2 <- lm(points ~ attitude + stra, data = learning2014)
+
+# draw diagnostic plots using the plot() function. Choose the plots 1, 2 and 5
+par(mfrow = c(2,2))
+plot(my_model2, which = c(1,2,5))
+```
+
+### The assumptions of the model  
+
+Model assumptions in linear regression are as follows.
+
+1. In a linear regression  model an obvious assumption is linearity: the target variable is modelled as a linear combination of the model parameters.
+2. The errors are normally distributed.
+
+Analyzing the residuals of the model provides a method to explore the validity of model assumptions.
+
+Assumptions related to errors are as follows.
+
+1. The errors are normally distributed.
+2. The errors are not correlated.
+3. The errors have a constant variance.
+4. The size of a given error does not depend on the explanatory variables. (constant variance of errors)
+
+### Interpret the validity of those assumptions based on the diagnostic plots
+
+Residuals vs Fitted-plot provides a method to explore the assumption that the size of a given error does not depend on the explanatory variables. Any pattern will imply a problem in the assumption. As we can see in above Residuals vs Fitted-plot, there is a reasonable random spread of points. We can not observe a pattern; but a constant variance. It confirms the assumption that the size of the errors does not depend on the explanatory variables. 
+
+Normal QQ-plot provides a method to explore the assumption that errors of the model  are normally distributed.
+As we can see in above QQ-plot, there is a reasonable fit in the middle. But in the corners, there is a clear deviation which makes the normality assumption being questionable.
+
+The Residuals vs leverage shows how much impact single point has on the model. It helps to identify which points have an unusually high impact. As we can see in above Residuals vs leverage plot, there are no highly unusual outliers.
+
