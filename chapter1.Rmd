@@ -1,10 +1,8 @@
 
 # About the project
 
-
-
 ```
-I am feeling excited. I expect to learn basically R in this course.  I received an email about this course from university of Helsinki.
-
-GitHub repository : https://github.com/chamalee/IODS-project
+I am feeling excited. I expect to learn basically R in this course.  I received an email about this course from university of Helsinki. Here is my forked repository:
 ```
+
+GitHub repository : <https://github.com/chamalee/IODS-project>
