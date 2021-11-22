@@ -118,15 +118,55 @@ What we can conclude from these coefficients is that:
  - p-value of **freetime**  indicates that it is somewhat significant to **high_use**. 
  - Comparatively high p-value of **age** w.r.t **freetime**  indicates that it is somewhat less significant to **high_use**. 
  
+ Next, we will add **romantic** to the model.
  
+```{r}
+model2 <- glm(high_use ~ age + freetime + romantic, 
+              data = alc, 
+              family = "binomial")
+summary(model2)
+
+# print out the coefficients of the model
+coef(model2)
+```
+
+Very high p-value of **romantic**   indicates that it is the least significant to **high_use**. 
+We can conclude here that my previous hypothesis is not fully accurate since **romantic** does not show a strong  correlation with    **high_use**.
+
+ Next, we will add **sex** to the model. It will create my previously stated hypothesis model.
+ 
+ ```{r}
+model3 <- glm(high_use ~ age + freetime + romantic + sex, 
+              data = alc, 
+              family = "binomial")
+summary(model3)
+
+# print out the coefficients of the model
+coef(model3)
+```
+Very low p-value of **sex**   indicates that it is the most significant to **high_use**.
+
+We can finalize the model as follows with the most significant variables.
+
+ ```{r}
+model4 <- glm(high_use ~ age + freetime  + sex, 
+              data = alc, 
+              family = "binomial")
+summary(model4)
+
+# print out the coefficients of the model
+coef(model4)
+```
+
+
 let’s see  the odds ratios with their CI’s.
 
 ```{r}
 
-OR <- model %>% 
+OR <- model4 %>% 
   coef %>% 
   exp
-CI <- model %>% 
+CI <- model4 %>% 
   confint %>% 
   exp
 m_OR <- cbind(OR, CI)
@@ -135,14 +175,16 @@ m_OR
 
 What we can conclude from these coefficients is that:
 
- - Higher **age** shows higher probability (1.21) of having **high_use**.
- - Similarly, higher **freetime** shows higher probability (1.45) of  having **high_use**.
- 
+ - Higher **age** shows higher probability (1.22) of having higher **high_use**.
+ - Similarly, higher **freetime** shows higher probability (1.33) of  having higher **high_use**.
+
  
 ### 6.Cross tabulation of predictions versus the actual values.
 
+2X2 cross tabulation can give us an idea of the predictive power of the model.
+
 ```{r}
-probs <- predict(model, type = "response") # Predict probability responses based on the variables
+probs <- predict(model4, type = "response") # Predict probability responses based on the variables
 a_predict <- alc %>%
   mutate(probability = probs) %>% # add them to our data.frame
   mutate(prediction = probability > 0.5) # Compare those probabilities to our significance cutoff to identify the logical value
@@ -152,6 +194,26 @@ table(high_use = a_predict$high_use,
   prop.table %>%
   addmargins()
 ```
+
+Approximately 70% of the values were predicted correctly.
+
+Let's compare the performance with some simple guessing model.
+
+ ```{r}
+model5 <- glm(high_use ~  failures, 
+              data = alc, 
+              family = "binomial")
+probs <- predict(model5, type = "response") # Predict probability responses based on the variables
+a_predict <- alc %>%
+  mutate(probability = probs) %>% # add them to our data.frame
+  mutate(prediction = probability > 0.5) # Compare those probabilities to our significance cutoff to identify the logical value
+# Plot the 2X2 cross tabulation of the predictions
+table(high_use = a_predict$high_use, 
+      prediction = a_predict$prediction) %>%
+  prop.table %>%
+  addmargins()
+```
+In new model too, approximately 70% of the values were predicted correctly.
 
 
 ### 7.  Cross-validation
@@ -174,7 +236,7 @@ loss_func(class = alc$high_use, prob = alc$probability)
 
 # K-fold cross-validation
 library(boot)
-cv <- cv.glm(data = alc, cost = loss_func, glmfit = model, K = 10)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = model4, K = 10)
 
 ```
 

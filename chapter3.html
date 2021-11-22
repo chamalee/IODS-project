@@ -171,7 +171,7 @@ pre code {
 <h1>Logistic regression</h1>
 <p><em>This week I have covered data wrangling and logistic regression analysis. </em></p>
 <pre class="r"><code>date()</code></pre>
-<pre><code>## [1] &quot;Mon Nov 22 06:59:43 2021&quot;</code></pre>
+<pre><code>## [1] &quot;Mon Nov 22 07:52:31 2021&quot;</code></pre>
 <div id="information-of-dataset" class="section level3">
 <h3>2. Information of dataset</h3>
 <pre class="r"><code>library(dplyr)</code></pre>
@@ -346,29 +346,136 @@ coef(model)</code></pre>
 <li>p-value of <strong>freetime</strong> indicates that it is somewhat significant to <strong>high_use</strong>.</li>
 <li>Comparatively high p-value of <strong>age</strong> w.r.t <strong>freetime</strong> indicates that it is somewhat less significant to <strong>high_use</strong>.</li>
 </ul>
+<p>Next, we will add <strong>romantic</strong> to the model.</p>
+<pre class="r"><code>model2 &lt;- glm(high_use ~ age + freetime + romantic, 
+              data = alc, 
+              family = &quot;binomial&quot;)
+summary(model2)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = high_use ~ age + freetime + romantic, family = &quot;binomial&quot;, 
+##     data = alc)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.4318  -0.8620  -0.7207   1.3094   1.9994  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)   
+## (Intercept) -5.47316    1.69354  -3.232  0.00123 **
+## age          0.20842    0.09841   2.118  0.03418 * 
+## freetime     0.37709    0.12165   3.100  0.00194 **
+## romanticyes -0.26045    0.25381  -1.026  0.30482   
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 452.04  on 369  degrees of freedom
+## Residual deviance: 437.00  on 366  degrees of freedom
+## AIC: 445
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<pre class="r"><code># print out the coefficients of the model
+coef(model2)</code></pre>
+<pre><code>## (Intercept)         age    freetime romanticyes 
+##  -5.4731577   0.2084192   0.3770938  -0.2604451</code></pre>
+<p>Very high p-value of <strong>romantic</strong> indicates that it is the least significant to <strong>high_use</strong>. We can conclude here that my previous hypothesis is not fully accurate since <strong>romantic</strong> does not show a strong correlation with <strong>high_use</strong>.</p>
+<p>Next, we will add <strong>sex</strong> to the model. It will create my previously stated hypothesis model.</p>
+<pre class="r"><code>model3 &lt;- glm(high_use ~ age + freetime + romantic + sex, 
+             data = alc, 
+             family = &quot;binomial&quot;)
+summary(model3)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = high_use ~ age + freetime + romantic + sex, family = &quot;binomial&quot;, 
+##     data = alc)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.5445  -0.8506  -0.6576   1.2234   2.1190  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) -5.74785    1.72535  -3.331 0.000864 ***
+## age          0.21575    0.09994   2.159 0.030870 *  
+## freetime     0.29151    0.12479   2.336 0.019491 *  
+## romanticyes -0.20455    0.25873  -0.791 0.429182    
+## sexM         0.80662    0.24192   3.334 0.000855 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 452.04  on 369  degrees of freedom
+## Residual deviance: 425.66  on 365  degrees of freedom
+## AIC: 435.66
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<pre class="r"><code># print out the coefficients of the model
+coef(model3)</code></pre>
+<pre><code>## (Intercept)         age    freetime romanticyes        sexM 
+##  -5.7478538   0.2157461   0.2915068  -0.2045533   0.8066158</code></pre>
+<p>Very low p-value of <strong>sex</strong> indicates that it is the most significant to <strong>high_use</strong>.</p>
+<p>We can finalize the model as follows with the most significant variables.</p>
+<pre class="r"><code>model4 &lt;- glm(high_use ~ age + freetime  + sex, 
+             data = alc, 
+             family = &quot;binomial&quot;)
+summary(model4)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = high_use ~ age + freetime + sex, family = &quot;binomial&quot;, 
+##     data = alc)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.4981  -0.8659  -0.6393   1.2428   2.0520  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) -5.62126    1.71834  -3.271 0.001070 ** 
+## age          0.20483    0.09903   2.068 0.038605 *  
+## freetime     0.28665    0.12457   2.301 0.021383 *  
+## sexM         0.81972    0.24134   3.396 0.000683 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 452.04  on 369  degrees of freedom
+## Residual deviance: 426.29  on 366  degrees of freedom
+## AIC: 434.29
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<pre class="r"><code># print out the coefficients of the model
+coef(model4)</code></pre>
+<pre><code>## (Intercept)         age    freetime        sexM 
+##  -5.6212569   0.2048304   0.2866508   0.8197204</code></pre>
 <p>let’s see the odds ratios with their CI’s.</p>
-<pre class="r"><code>OR &lt;- model %&gt;% 
+<pre class="r"><code>OR &lt;- model4 %&gt;% 
   coef %&gt;% 
   exp
-CI &lt;- model %&gt;% 
+CI &lt;- model4 %&gt;% 
   confint %&gt;% 
   exp</code></pre>
 <pre><code>## Waiting for profiling to be done...</code></pre>
 <pre class="r"><code>m_OR &lt;- cbind(OR, CI)
 m_OR</code></pre>
-<pre><code>##                      OR        2.5 %    97.5 %
-## (Intercept) 0.004961467 0.0001718879 0.1296268
-## age         1.214256664 1.0044176340 1.4730951
-## freetime    1.452952205 1.1491207839 1.8520993</code></pre>
+<pre><code>##                      OR        2.5 %     97.5 %
+## (Intercept) 0.003620088 0.0001161896 0.09987401
+## age         1.227316904 1.0125010025 1.49443547
+## freetime    1.331958997 1.0464192521 1.70714861
+## sexM        2.269865003 1.4192715886 3.66181832</code></pre>
 <p>What we can conclude from these coefficients is that:</p>
 <ul>
-<li>Higher <strong>age</strong> shows higher probability (1.21) of having <strong>high_use</strong>.</li>
-<li>Similarly, higher <strong>freetime</strong> shows higher probability (1.45) of having <strong>high_use</strong>.</li>
+<li>Higher <strong>age</strong> shows higher probability (1.22) of having higher <strong>high_use</strong>.</li>
+<li>Similarly, higher <strong>freetime</strong> shows higher probability (1.33) of having higher <strong>high_use</strong>.</li>
 </ul>
 </div>
 <div id="cross-tabulation-of-predictions-versus-the-actual-values." class="section level3">
 <h3>6.Cross tabulation of predictions versus the actual values.</h3>
-<pre class="r"><code>probs &lt;- predict(model, type = &quot;response&quot;) # Predict probability responses based on the variables
+<p>2X2 cross tabulation can give us an idea of the predictive power of the model.</p>
+<pre class="r"><code>probs &lt;- predict(model4, type = &quot;response&quot;) # Predict probability responses based on the variables
 a_predict &lt;- alc %&gt;%
   mutate(probability = probs) %&gt;% # add them to our data.frame
   mutate(prediction = probability &gt; 0.5) # Compare those probabilities to our significance cutoff to identify the logical value
@@ -379,9 +486,29 @@ table(high_use = a_predict$high_use,
   addmargins()</code></pre>
 <pre><code>##         prediction
 ## high_use      FALSE       TRUE        Sum
-##    FALSE 0.68918919 0.01081081 0.70000000
-##    TRUE  0.28918919 0.01081081 0.30000000
-##    Sum   0.97837838 0.02162162 1.00000000</code></pre>
+##    FALSE 0.66486486 0.03513514 0.70000000
+##    TRUE  0.25945946 0.04054054 0.30000000
+##    Sum   0.92432432 0.07567568 1.00000000</code></pre>
+<p>Approximately 70% of the values were predicted correctly.</p>
+<p>Let’s compare the performance with some simple guessing model.</p>
+<pre class="r"><code>model5 &lt;- glm(high_use ~  failures, 
+             data = alc, 
+             family = &quot;binomial&quot;)
+probs &lt;- predict(model5, type = &quot;response&quot;) # Predict probability responses based on the variables
+a_predict &lt;- alc %&gt;%
+ mutate(probability = probs) %&gt;% # add them to our data.frame
+ mutate(prediction = probability &gt; 0.5) # Compare those probabilities to our significance cutoff to identify the logical value
+# Plot the 2X2 cross tabulation of the predictions
+table(high_use = a_predict$high_use, 
+     prediction = a_predict$prediction) %&gt;%
+ prop.table %&gt;%
+ addmargins()</code></pre>
+<pre><code>##         prediction
+## high_use      FALSE       TRUE        Sum
+##    FALSE 0.67567568 0.02432432 0.70000000
+##    TRUE  0.26756757 0.03243243 0.30000000
+##    Sum   0.94324324 0.05675676 1.00000000</code></pre>
+<p>In new model too, approximately 70% of the values were predicted correctly.</p>
 </div>
 <div id="cross-validation" class="section level3">
 <h3>7. Cross-validation</h3>
@@ -400,7 +527,7 @@ loss_func(class = alc$high_use, prob = alc$probability)</code></pre>
 <pre><code>## [1] NaN</code></pre>
 <pre class="r"><code># K-fold cross-validation
 library(boot)
-cv &lt;- cv.glm(data = alc, cost = loss_func, glmfit = model, K = 10)</code></pre>
+cv &lt;- cv.glm(data = alc, cost = loss_func, glmfit = model4, K = 10)</code></pre>
 <!-- ### 2. Graphical overview of the data and  summaries of the variables  -->
 <!-- # create a more advanced plot matrix with ggpairs() : draws all possible scatter plots from the columns of a data frame, resulting in a scatter plot matrix. -->
 <!-- p <- ggpairs(learning2014, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20))) -->
