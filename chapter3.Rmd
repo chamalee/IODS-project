@@ -1,0 +1,310 @@
+# Logistic regression
+
+*This week I have covered data wrangling and logistic regression analysis. *
+
+```{r}
+date()
+```
+### 2. Information of dataset
+
+```{r}
+library(dplyr)
+# read the data into memory
+alc <- read.table("https://github.com/rsund/IODS-project/raw/master/data/alc.csv", sep=",", header=TRUE)
+
+dim(alc)
+glimpse(alc)
+# summary(alc)
+```
+
+
+This dataset contains data of 370 participants in secondary education of two Portuguese schools. 
+This dataset has 51 columns. The data attributes include student grades, demographic, social and school related features) and it was collected by using school reports and questionnaires. This combined datasets are provided regarding the performance in two distinct subjects: Mathematics (mat) and Portuguese language (por). In [Cortez and Silva, 2008].
+
+
+### 3. My personal hypothesis about relationships of chosen variables  with alcohol consumption. ( **alc_use**,**high_use**)
+The purpose of the analysis is to study the relationships between high/low alcohol consumption and some of the other variables in the data.  4 interesting variables : 
+ - **sex** : I think female student might consume less amount of alcohol with compared to male students. 
+ - **age** : I think higher the age, the highest consumption.
+ - **romantic** : I expect that having a committed relationship will make the least alcohol consumption.
+ - **freetime** : I expect that more free time will allow the students for high alcohol consumption. In my point of view, **high_use** variable will behave approximately similar to **alc_use**.
+
+### 4.  Graphical representation of the distributions of aforementioned chosen variables 
+
+
+
+
+
+```{r}
+# access the GGally and ggplot2 libraries
+library(GGally)
+library(ggplot2)
+library(dplyr)
+alc_questions <- c("alc_use", "high_use", "sex", "age", "romantic", "freetime")
+
+# alc_cols %>%
+#   select(alc,one_of(alc_questions))
+
+alc_cols <- alc[,alc_questions]
+
+
+# create a more advanced plot matrix with ggpairs() : draws all possible scatter plots from the columns of a data frame, resulting in a scatter plot matrix.
+p <- ggpairs(alc_cols, mapping = aes(col = sex, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+# draw the plot
+p
+
+p <- ggpairs(alc_cols, mapping = aes(col = high_use, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+# draw the plot
+p
+
+
+
+```
+
+
+We can Immediately notice that,
+
+ - **alc_use** has a strong correlation to **age** and **freetime** .
+ - For **alc_use**, **age**  mostly affect on female students and **freetime** mostly affect male students.
+ - **age** has a positive correlation with **freetime**  only on male students.
+ - **age** has a negative correlation with **freetime**  only on female students.
+ - We do not see a strong correlation with other variable **freetime**  eventhough I assumed before.
+ 
+
+
+```{r}
+# 
+# # access the 'tidyverse' packages dplyr and ggplot2
+# library(dplyr); library(ggplot2)
+# 
+# # define a new column alc_use by combining weekday and weekend alcohol use
+# alc <- mutate(alc, alc_use = (Dalc + Walc) / 2)
+# 
+# # initialize a plot of alcohol use
+# g1 <- ggplot(data = alc, aes(x = alc_use, fill = sex))
+# 
+# # define the plot as a bar plot and draw it
+# g1 + geom_bar()
+# 
+# # define a new logical column 'high_use'
+# alc <- mutate(alc, high_use = alc_use > 2)
+# 
+# # initialize a plot of 'high_use'
+# g2 <- ggplot(alc, aes(high_use))
+# 
+# # draw a bar plot of high_use by sex
+# g2 + facet_wrap("sex") + geom_bar()
+```
+
+
+
+### 5.  Logistic regression
+
+Use logistic regression to statistically explore the relationship between your chosen variables and the binary high/low alcohol consumption variable as the target variable.
+
+
+```{r}
+model <- glm(high_use ~ age + freetime, 
+              data = alc, 
+              family = "binomial")
+summary(model)
+
+# print out the coefficients of the model
+coef(model)
+```
+
+What we can conclude from these coefficients is that:
+
+ - p-value of **freetime**  indicates that it is somewhat significant to **high_use**. 
+ - Comparatively high p-value of **age** w.r.t **freetime**  indicates that it is somewhat less significant to **high_use**. 
+ 
+ 
+let’s see  the odds ratios with their CI’s.
+
+```{r}
+
+OR <- model %>% 
+  coef %>% 
+  exp
+CI <- model %>% 
+  confint %>% 
+  exp
+m_OR <- cbind(OR, CI)
+m_OR
+```
+
+What we can conclude from these coefficients is that:
+
+ - Higher **age** shows higher probability (1.21) of having **high_use**.
+ - Similarly, higher **freetime** shows higher probability (1.45) of  having **high_use**.
+ 
+ 
+### 6.Cross tabulation of predictions versus the actual values.
+
+```{r}
+probs <- predict(model, type = "response") # Predict probability responses based on the variables
+a_predict <- alc %>%
+  mutate(probability = probs) %>% # add them to our data.frame
+  mutate(prediction = probability > 0.5) # Compare those probabilities to our significance cutoff to identify the logical value
+# Plot the 2X2 cross tabulation of the predictions
+table(high_use = a_predict$high_use, 
+      prediction = a_predict$prediction) %>%
+  prop.table %>%
+  addmargins()
+```
+
+
+### 7.  Cross-validation
+
+Cross-validation is a method of testing a predictive model on unseen data. In cross-validation, the value of a penalty (loss) function (mean prediction error) is computed on data not used for finding the model. Low value = good.
+
+Cross-validation gives a good estimate of the actual predictive power of the model. It can also be used to compare different models or classification methods.
+
+```{r}
+# the logistic regression model m and dataset alc (with predictions) are available
+
+# define a loss function (average prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+# compute the average number of wrong predictions in the (training) data
+loss_func(class = alc$high_use, prob = alc$probability)
+
+# K-fold cross-validation
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = model, K = 10)
+
+```
+
+
+<!-- ### 2. Graphical overview of the data and  summaries of the variables  -->
+
+
+
+<!-- # create a more advanced plot matrix with ggpairs() : draws all possible scatter plots from the columns of a data frame, resulting in a scatter plot matrix. -->
+<!-- p <- ggpairs(learning2014, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20))) -->
+<!-- # draw the plot -->
+<!-- p -->
+<!-- ``` -->
+
+<!-- ### Interpret the results -->
+
+<!-- From above graphical overview, we can see the relationships between the variables. It shows the correlations  between different variables and distributions of each variables with respect to 'gender' variable. -->
+
+<!-- The colour of plots is defined with the 'gender' variable. Pink color plots correspond to Female and green color for Male.  -->
+
+<!-- In this graphical overview, we can see the correlations between all variables. We have a negative correlation between points and age. The trend is that when age increases points decreases. And there is a positive correlation between points are attitudes. The trend is that when attitude increases point increases. If we consider correlation between surf variable and deep variable, there is a strong correlation in males where as a weak correlation in females. However, we can also observe that there are approximately twice number of  more female than male.  -->
+
+<!-- ###  3. Fit a regression model  -->
+
+<!-- ```{r} -->
+<!-- # a scatter plot of points versus attitude -->
+<!-- library(ggplot2) -->
+<!-- qplot(attitude, points, data = learning2014) + geom_smooth(method = "lm") -->
+
+<!-- # fit a linear model # create a regression model with multiple explanatory variables -->
+<!-- my_model <- lm(points ~ attitude + stra + deep, data = learning2014) -->
+
+<!-- # print out a summary of the model -->
+<!-- summary(my_model) -->
+<!-- ``` -->
+
+<!-- ### Interpret the results -->
+
+<!-- Linear model: -->
+<!-- formula = points ~ attitude + stra + deep -->
+
+<!-- The best model is found by minimizing the prediction errors (residuals) that model would make. -->
+<!-- Goal is to minimize the sum of squared residuals.  The parameters of residuals are as follows. -->
+
+<!-- Parameters of Residuals: -->
+
+<!-- Min  -17.5239, 1Q -3.4276, Median 0.5474, 3Q 3.8220, Max 11.5112. -->
+
+<!-- Coefficients give the estimates of the model parameters corresponding to each variable along with the intercept. Intercept corresponds to the value in y-axis where linear model intersects y-axis. -->
+
+<!--  Coefficients: -->
+
+<!--  (Intercept)  11.3915      -->
+<!--  attitude      3.5254      -->
+<!--  stra          0.9621        -->
+<!--  deep         -0.7492    -->
+
+<!-- P-values:  -->
+
+<!-- The P-value which corresponds to attitude is very small. Therefore, we can conclude there is a strong correlation  between the points variable and attitude variable. Due to high p-value of deep variable, there is the least correlation  between points variable and deep variable. P-values are as follows. -->
+
+<!--  attitude       4.44e-09 *** -->
+<!--  stra           0.07489 .   -->
+<!--  deep           0.31974   -->
+
+<!-- We can even observe standard error values of parameter estimates from  Std. Error column in the summary - table of coefficients. -->
+
+<!-- ###  Remove less correlated variable -->
+
+<!-- deep variable does not have a statistically significant relationship with the target variable; points. -->
+
+<!-- ```{r} -->
+<!-- # a scatter plot of points versus attitude -->
+<!-- library(ggplot2) -->
+<!-- qplot(attitude, points, data = learning2014) + geom_smooth(method = "lm") -->
+
+<!-- # fit a linear model # create a regression model with multiple explanatory variables -->
+<!-- my_model <- lm(points ~ attitude + stra , data = learning2014) -->
+
+<!-- # print out a summary of the model -->
+<!-- summary(my_model) -->
+<!-- ``` -->
+
+
+<!-- ###  4. Relationship between explanatory variables and the target variables -->
+
+<!-- Here, it was considered, points as the target variable and attitude, stra and deep as the explanatory variables. It implies we are trying to estimate  points variable as a multiple linear model of attitude, stra and deep variables. We can see that there is a statistically significant relationship between exam points and attitude, but not with deep. This means that deep does not interpret anything about exam points, but the attitude do interpret. Therefore, deep variable was removed from the consideration and remodelled only with attitude and stra variables. -->
+
+<!-- ###  Multiple R squared of the model -->
+
+<!-- With attitude + stra + deep variables -> Multiple R-squared:  0.2097 -> approximately 20% -->
+<!-- With attitude + stra  variables ->  Multiple R-squared:  0.2048 -> approximately 20% -->
+
+<!-- Multiple R-squared implies the multiple correlation coefficient between three or more variables.  It implies  how strong the linear relationship is.  In other words, how well the regression model fits the observed data. This value ranges from 0 to 1. -->
+<!-- For example, an R-squared of 20% reveals that 20% of the data fit the regression model. Generally, a higher R-squared indicates a better fit for the model. In this case, we can see after we remove deep variable, Multiple R-squared approximately remains unchanged. That is because deep variable does not have a high impact towards point variable. -->
+
+<!-- ###  5. Diagnostic plots -->
+
+<!-- ```{r} -->
+<!-- # a scatter plot of points versus attitude -->
+<!-- # create a regression model with multiple explanatory variables -->
+<!-- my_model2 <- lm(points ~ attitude + stra, data = learning2014) -->
+
+<!-- # draw diagnostic plots using the plot() function. Choose the plots 1, 2 and 5 -->
+<!-- par(mfrow = c(2,2)) -->
+<!-- plot(my_model2, which = c(1,2,5)) -->
+<!-- ``` -->
+
+<!-- ### The assumptions of the model   -->
+
+<!-- Model assumptions in linear regression are as follows. -->
+
+<!-- 1. In a linear regression  model an obvious assumption is linearity: the target variable is modelled as a linear combination of the model parameters. -->
+<!-- 2. The errors are normally distributed. -->
+
+<!-- Analyzing the residuals of the model provides a method to explore the validity of model assumptions. -->
+
+<!-- Assumptions related to errors are as follows. -->
+
+<!-- 1. The errors are normally distributed. -->
+<!-- 2. The errors are not correlated. -->
+<!-- 3. The errors have a constant variance. -->
+<!-- 4. The size of a given error does not depend on the explanatory variables. (constant variance of errors) -->
+
+<!-- ### Interpret the validity of those assumptions based on the diagnostic plots -->
+
+<!-- Residuals vs Fitted-plot provides a method to explore the assumption that the size of a given error does not depend on the explanatory variables. Any pattern will imply a problem in the assumption. As we can see in above Residuals vs Fitted-plot, there is a reasonable random spread of points. We can not observe a pattern; but a constant variance. It confirms the assumption that the size of the errors does not depend on the explanatory variables.  -->
+
+<!-- Normal QQ-plot provides a method to explore the assumption that errors of the model  are normally distributed. -->
+<!-- As we can see in above QQ-plot, there is a reasonable fit in the middle. But in the corners, there is a clear deviation which makes the normality assumption being questionable. -->
+
+<!-- The Residuals vs leverage shows how much impact single point has on the model. It helps to identify which points have an unusually high impact. As we can see in above Residuals vs leverage plot, there are no highly unusual outliers. -->
+
