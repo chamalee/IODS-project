@@ -82,6 +82,66 @@ gii <- gii %>%
 human <- inner_join(hd, gii, by = "Country")
 
 # write data to a csv-file
-write.table(human, "data/human.csv.csv", sep = ";", row.names = F, col.names = T)
+write.table(human, "data/human.csv", sep = ";", row.names = F, col.names = T)
+
+# Exercise 5 starting from here
+# Data wrangling 
+
+# read the human data from URL
+human <- read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human1.txt", sep  =",", header = T)
+
+#load the human data
+# human <- read.table("data/human.csv", sep = ";")
+
+#examine the structure and dimensions of the data
+## 195 observations of 19 variables
+str(human)
+dim(human)
+
+# transform the Gross National Income (GNI) variable to numeric
+
+library(stringr) 
+
+# look at the structure of the GNI column in 'human'
+str(human$GNI)
+
+# 1. remove the commas from GNI and print out a numeric version of it
+str_replace(human$GNI, pattern=",", replace ="") %>% as.numeric
+
+# 2. Filter the variables 
+
+# columns to keep
+keep <- c("Country", "Edu2.FM", "Labo.FM", "Life.Exp", "Edu.Exp", "GNI", "Mat.Mor", "Ado.Birth", "Parli.F")
+
+# select the 'keep' columns
+human <- select(human, one_of(keep))
+
+# print out a completeness indicator of the 'human' data
+complete.cases(human)
+
+# print out the data along with a completeness indicator as the last column
+data.frame(human[-1], comp = complete.cases(human))
+
+# 3. filter out all rows with NA values
+human <- filter(human, complete.cases(human))
+
+
+# last indice we want to keep, last 7 are  regions than  countries
+last <- nrow(human) - 7
+
+# 4. choose everything until the last 7 observations
+human <- human[1:last, ]
+
+# 5. add countries as rownames
+rownames(human) <- human$Country
+# remove the Country variable
+human <- select(human, -Country)
+
+# save the data to file
+write.table(human, "data/human.csv", sep = ";")
+
+
+
+
 
 

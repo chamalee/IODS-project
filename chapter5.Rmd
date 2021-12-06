@@ -5,387 +5,303 @@
 ```{r}
 date()
 ```
-### 2. Information of  Boston dataset from the MASS package
+### 0. Information of prepared Human dataset
 
 ```{r}
 
-# access the MASS package
-library(MASS)
+# read the human data from URL
+human <- read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human2.txt", sep  =",", header = T)
+# human <- read.table("data/human.csv", sep = ";")
 
-# load the data
-data("Boston")
+dim(human)
 
-# explore the dataset
-str(Boston)
-summary(Boston)
+# look at the (column) names of human
+names(human)
+
+```
+
+The origin of the data is  the United Nations Development Programme. This dataset contains information of 155 countries. This dataset has 8 columns. The data attributes include features such as Gross National Income, Life expectancy at birth, Expected years of schooling  and so on. 
+
+You may see all features explained in brief.
+
+- Edu2.FM : Proportion of females with at least secondary education / Proportion of males with at least secondary education
+- Labo.FM  : Proportion of females in the labour force / Proportion of males in the labour force
+- Edu.Exp : Expected years of schooling 
+- Life.Exp : Life expectancy at birth
+- GNI : Gross National Income 
+- Mat.Mor : Maternal mortality ratio
+- Ado.Birth : Adolescent birth rate
+- Parli.F : Percetange of female representatives in parliament
+
+
+```{r}
+
+
+# look at the structure of human
+str(human)
+
+```
+
+```{r}
+
+
+# print out summaries of the variables
+summary(human)
 
 ```
 
 
-This dataset contains information of 506 houses in Boston suburbs. This dataset has 14 columns. The data attributes include features such as per capita crime rate by town, proportion of residential land zoned for lots over 25,000 sq.ft., social and Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)) and so on. You may see the all the features explained in brief.
 
-crim :per capita crime rate by town.
-zn : proportion of residential land zoned for lots over 25,000 sq.ft.
-indus : proportion of non-retail business acres per town.
-chas :Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
-nox : nitrogen oxides concentration (parts per 10 million).
-rm :average number of rooms per dwelling.
-age :proportion of owner-occupied units built prior to 1940.
-dis :weighted mean of distances to five Boston employment centres.
-rad :index of accessibility to radial highways.
-tax :full-value property-tax rate per \$10,000.
-ptratio : pupil-teacher ratio by town.
-black :1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
-lstat : lower status of the population (percent).
-medv : median value of owner-occupied homes in \$1000s.
-
-
-### 3.1  Graphical overview of the data and show summaries of the variables in the data
+### 1.1  Graphical overview of the data
 
 
 ```{r}
-# MASS, corrplot, tidyr and Boston dataset are available
-library(tidyr)
+
+# Access GGally
+library(GGally)
 library(corrplot)
 
-# plot matrix of the variables
-pairs(Boston)
+# visualize the 'human' variables
+ggpairs(human)
 
+# compute the correlation matrix and visualize it with corrplot
+cor(human) %>% corrplot
 
-
-# calculate the correlation matrix and round it
-cor_matrix<-cor(Boston) %>% round(digits = 2)
-
-# print the correlation matrix
-cor_matrix
-
-# visualize the correlation matrix
-corrplot(cor_matrix, method="circle", type="upper", cl.pos="b", tl.pos="d", tl.cex = 0.6)
-
-
-
-# access the GGally and ggplot2 libraries
-library(GGally)
-library(ggplot2)
-library(dplyr)
-
-
-
-# create a more advanced plot matrix with ggpairs() : draws all possible scatter plots from the columns of a data frame, resulting in a scatter plot matrix.
-p <- ggpairs(Boston, mapping = aes( alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)),upper = list(continuous = wrap("cor", size = 2)))
-# draw the plot
-p
-
-
+ 
+corrplot.mixed(cor(human, use = "pairwise"), order ="hclust")
 ```
 
 
-### 3.2 Interpretation of results
+### 1.2 Interpretation of results
 
 We can Immediately notice that,
 
-
- - **dis**  has a strong negative correlation with **indus**. This is due to the fact that when proportion of non-retail business acres per town increases weighted mean of distances to five Boston employment centres decreases.
- - We do not see a strong correlation between  **chas** variable  and **rad**. That is because index of accessibility to radial highways does not depend on Charles River dummy variable. These two variables can be considered as almost independent.
-  - **nox** has a strong positive correlation to **indus**. It is obvious that nitrogen oxides concentration increases when proportion of non-retail business acres per town increases.
-  - **rad** has a strong correlation to **indus**, **nox**, **crim** and **age**.  That is due to the fact that index of accessibility to radial highways has a positive relationship with proportion of non-retail business acres per town, nitrogen oxides concentration, per capita crime rate by town and proportion of owner-occupied units built prior to 1940.
- - **rn** has a positive correlation with **zn**. That is because average number of rooms per dwelling increases with the proportion of residential land zoned for lots over 25,000 sq.ft.
  
-### 4.1 Standardization
+ - **Mat.Mor**  has a strong negative correlation with **Life.Exp**. This is due to the fact that when Maternal mortality ratio increases Life expectancy at birth decreases.
+ - We do not see a strong correlation between  **GNI** variable  and **Labo.FM**. That is because Gross National Income does not depend on Proportion of females in the labour force / Proportion of males in the labour force variable. These two variables can be considered as almost independent.
+  - **Life.Exp** has a strong positive correlation to **Edu.Exp**. It is obvious that Expected years of schooling increases when Life expectancy at birth increases.
+  - **Life.Exp** has a strong correlation to  both **Mat.Mor** and  **Ado.Birth**.  That is due to the fact that Life expectancy at births has a negative relationship with both  Maternal mortality ratio and Adolescent birth rate.
+ - **Ado.Birth** has a positive correlation with **Mat.Mor**. That is because Maternal mortality ratio increases with Adolescent birth rate.
+ - We do not see a strong correlation between  **Edu.Exp** variable  and **Labo.FM**. That is because Expected years of schooling does not depend on Proportion of females in the labour force / Proportion of males in the labour force variable. These two variables can be considered as almost independent.
+
+
+
+### 2.1  Principal component analysis (PCA)
+
+Principal Component Analysis (PCA) can be performed by two sightly different matrix decomposition methods from linear algebra: the Eigenvalue Decomposition and the Singular Value Decomposition (SVD).
+
+There are two functions in the default package distribution of R that can be used to perform PCA: princomp() and prcomp(). The prcomp() function uses the SVD and is the preferred, more numerically accurate method.
+
+Both methods quite literally decompose a data matrix into a product of smaller matrices, which let's us extract the underlying principal components. This makes it possible to approximate a lower dimensional representation of the data by choosing only a few principal components.
+
+```{r}
+
+
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human)
+
+# print out summaries of the non-standardized variables
+summary(human)
+
+```
+
+
+### 2.2 PCA with a biplot.
+
+
+A biplot is a way of visualizing the connections between two representations of the same data. First, a simple scatter plot is drawn where the observations are represented by two principal components (PC's). Then, arrows are drawn to visualize the connections between the original variables and the PC's. 
+
+The following connections hold:
+
+The angle between the arrows can be interpret as the correlation between the variables.
+The angle between a variable and a PC axis can be interpret as the correlation between the two.
+The length of the arrows are proportional to the standard deviations of the variables.
+
+
+```{r}
+
+# draw a biplot of the principal component representation and the original variables
+biplot(pca_human, choices = 1:2, cex = c(0.8, 1), col = c("grey40", "deeppink2"))
+```
+
+
+### 2.3 Interpretation of results
+
+- In bi-plot, the length of the arrow is proportional to standard deviation of features.
+- Small angle implies high positive correlation.
+- It can be observed that **GNI** has the largest length arrow indicating highest standard deviation.
+- Angle between first principal component and **GNI** variable is almost zero which indicates a high positive correlation.
+- Unfortunately, these kinds of results is due to non-standardized data.
+
+### 3.1  Standardization
+
+
+```{r}
+
+# standardize the variables
+human_std <- scale(human)
+
+# print out summaries of the standardized variables
+summary(human_std)
+
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human_std)
+
+```
+
+
+### 3.2 PCA with a biplot.
+
+```{r}
+
+# draw a biplot of the principal component representation and the original variables
+biplot(pca_human, choices = 1:2, cex = c(0.8, 1), col = c("grey40", "deeppink2"))
+```
+
+### 3.3 Interpretation of results
+
+ - We can Immediately notice that results with and without standardizing are different.
  
-- In the Standardization, we subtract the column means from the corresponding columns and divide the difference with standard deviation.
-- The Boston data contains only numerical values, so we can use the function scale() to standardize the whole dataset.
-
-```{r}
-# center and standardize variables
-boston_scaled <- scale(Boston)
-
-# summaries of the scaled variables
-summary(boston_scaled)
-
-# class of the boston_scaled object
-class(boston_scaled)
-
-# change the object to data frame
-boston_scaled <- as.data.frame(boston_scaled)
-
-```
-
-###  4.2 How did the variables change? 
-
-As we can observe above from the summary of the variables, we can notice that the distribution of values
- of each column variables have been scaled such that mean of the column data is zero and standard deviation is 1. Max and min values corresponding to a particular column too have adjusted accordingly.
-
-###  4.3 Creating a categorical variable. 
-
-We can create a categorical variable from a continuous one. There are many ways to to do that. Let's choose the variable crim (per capita crime rate by town) to be our factor variable. We want to cut the variable by quantiles to get the high, low and middle rates of crime into their own categories.
-
-
-```{r}
-# summary of the scaled crime rate
-summary(boston_scaled$crim)
-
-# create a quantile vector of crim and print it
-bins <- quantile(boston_scaled$crim)
-bins
-
-# create a categorical variable 'crime'
-crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, labels = c("low", "med_low", "med_high", "high"))
-
-# look at the table of the new factor crime
-table(crime)
-
-
-```
-
-###  4.4 Drop the old crime rate variable from the dataset.
-
-```{r}
-# remove original crim from the dataset
-boston_scaled <- dplyr::select(boston_scaled, -crim)
-
-# add the new categorical value to scaled data
-boston_scaled <- data.frame(boston_scaled, crime)
-
-```
-
-###  4.5 Divide the dataset to train and test sets, so that 80% of the data belongs to the train set.
-
-Divide and conquer: train and test sets
-When we want to use a statistical method to predict something, it is important to have data to test how well the predictions fit. Splitting the original data to test and train sets allows us to check how well our model works.
-
-The training of the model is done with the train set and prediction on new data is done with the test set. This way you have true classes / labels for the test data, and you can calculate how well the model performed in prediction.
-
-Time to split our data!
-
-
-```{r}
-# number of rows in the Boston dataset 
-n <- nrow(boston_scaled)
-
-# choose randomly 80% of the rows
-ind <- sample(n,  size = n * 0.8)
-
-# create train set
-train <- boston_scaled[ind,]
-
-# create test set 
-test <- boston_scaled[-ind,]
-
-
-```
-
-### 5.1 Linear discriminant analysis.
-
-Linear Discriminant analysis is a classification (and dimension reduction) method. It finds the (linear) combination of the variables that separate the target variable classes. The target can be binary or multiclass variable. Linear discriminant analysis is closely related to many other methods, such as principal component analysis.
-
-We are going to fit a linear discriminant analysis using the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. 
-
-```{r}
-# linear discriminant analysis
-lda.fit <- lda(crime ~ ., data = train)
-
-# print the lda.fit object
-lda.fit
-
-```
-
-### 5.2 LDA with a biplot.
-
-LDA can be visualized with a biplot.
-
-```{r}
-
-# the function for lda biplot arrows
-lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "orange", tex = 0.75, choices = c(1,2)){
-  heads <- coef(x)
-  arrows(x0 = 0, y0 = 0, 
-         x1 = myscale * heads[,choices[1]], 
-         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
-  text(myscale * heads[,choices], labels = row.names(heads), 
-       cex = tex, col=color, pos=3)
-}
-
-# target classes as numeric
-classes <- as.numeric(train$crime)
-
-# plot the lda results
-plot(lda.fit, dimen = 2, col = classes, pch = classes)
-lda.arrows(lda.fit, myscale = 1)
-```
-
-It can be observed that **rad** has the most influence over the separation of the model. Moreover,  it implies that **rad** variable is more likely to influence the most on the **crim** variable.
-
-
-### 6. Linear discriminant analysis over test data.
-
-Save the crime categories from the test set and then remove the categorical crime variable from the test dataset. Then predict the classes with the LDA model on the test data. Cross tabulate the results with the crime categories from the test set. Comment on the results.
-
-```{r}
-# save the correct classes from test data
-correct_classes <- test$crime
-
-# remove the crime variable from test data
-test <- dplyr::select(test, -crime)
-
-# predict classes with test data
-lda.pred <- predict(lda.fit, newdata = test)
-
-# cross tabulate the results
-table(correct = correct_classes, predicted = lda.pred$class)
-```
-
-
-We can observe that diagonals of the cross tabulated table (14,18,11,22) represent correctly classified crime categories where as off-diagonals represent the mis-classifications. 
-Correct classifications will be interpreting low as low, med low as med low, med high as med high and high as high. All others are  mis-classifications.
-Correct classifications = 14+18+11+22 = 65
-Total mis-classifications = 5+16+1+2+3+10= 37
-
-### 7.1 Clustering.
-
-Reload the Boston dataset and standardize the dataset. Calculate the distances between the observations. 
-
-```{r}
-
-# load MASS and Boston
-library(MASS)
-data('Boston')
-
-# center and standardize variables
-boston_scaled <- scale(Boston)
-
-
-# change the object to data frame
-boston_scaled <- as.data.frame(boston_scaled)
-
-
-# euclidean distance matrix
-dist_eu <- dist(Boston)
-
-# look at the summary of the distances
-summary(dist_eu)
-
-# manhattan distance matrix
-dist_man <- dist(Boston, method = 'manhattan')
-
-# look at the summary of the distances
-summary(dist_man)
-
-```
-
-
-### 7.2 K-means clustering
-K-means is maybe the most used and known clustering method. It is an unsupervised method, that assigns observations to groups or clusters based on similarity of the objects. In the previous exercise we got a hang of distances. The kmeans() function counts the distance matrix automatically, but it is good to know the basics. Let's cluster a bit!
-
-```{r}
-# k-means clustering
-km <-kmeans(Boston, centers = 3)
-
-# plot the Boston dataset with clusters
-pairs(Boston, col = km$cluster)
-```
-
-### 7.3 Investigate the optimal number of clusters
-
-K-means needs the number of clusters as an argument. There are many ways to look at the optimal number of clusters and a good way might depend on the data you have.
-
-One way to determine the number of clusters is to look at how the total of within cluster sum of squares (WCSS) behaves when the number of cluster changes. When you plot the number of clusters and the total WCSS, the optimal number of clusters is when the total WCSS drops radically.
-
-K-means might produce different results every time, because it randomly assigns the initial cluster centers. The function set.seed() can be used to deal with that.
-
-Steps are as follows.
-
-- Set the max number of clusters (k_max) to be 10
-- Execute the code to calculate total WCSS. This might take a while.
-- Visualize the total WCSS when the number of cluster goes from 1 to 10. 
-
-```{r}
-set.seed(123)
-
-# determine the number of clusters
-k_max <- 10
-
-# calculate the total within sum of squares
-twcss <- sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
-
-# visualize the results
-qplot(x = 1:k_max, y = twcss, geom = 'line')
-
-```
-
-### 7.4 Interpretation of results of total WCSS
-
-The optimal number of clusters is when the value of total WCSS changes radically. In this case, we observe that radical change from 1 to 2. Hence, two clusters would seem optimal.
-
-
-Next, Run kmeans() again with two clusters and visualize the results.
-
-
-```{r}
-
-# k-means clustering
-km <-kmeans(Boston, centers = 2)
-
-# plot the Boston dataset with clusters
-pairs(Boston, col = km$cluster)
-
-```
-
-
-
-### Bonus
-
-Perform k-means on the original Boston data with some reasonable number of clusters (> 2). Remember to standardize the dataset. Then perform LDA using the clusters as target classes. Include all the variables in the Boston data in the LDA model. Visualize the results with a biplot (include arrows representing the relationships of the original variables to the LDA solution). Interpret the results. Which variables are the most influencial linear separators for the clusters?
-
-
-```{r}
-
-data("Boston")
-
-boston_scaled <- Boston %>%
-  scale %>%
-  as.data.frame
-
-set.seed(123) 
-# k-means clustering
-km <- kmeans(boston_scaled, centers = 3)
-
-# clusters
-boston_b <- boston_scaled %>% 
-  mutate(crim = as.factor(km$cluster))
-
-# number of rows in the Boston dataset 
-n <- nrow(boston_b)
-
-# choose randomly 80% of the rows
-ind <- sample(n,  size = n * 0.8)
-
-# create train set
-train <- boston_b
-
-# create test set
-test <- boston_b
-
-correct_classes <- test$crim
-
-test <- dplyr::select(test, -crim)
-
-#  perform LDA using the clusters as target classes
-lda.fit <- lda(crim ~ ., data = train)
-
-# target classes as numeric
-classes <- as.numeric(train$crim)
-
-# plot the lda results
-plot(lda.fit, dimen = 2, col = classes, pch = classes)
-lda.arrows(lda.fit, myscale = 1)
-
-```
-
-- It can  be observed that **rad** has the most influence for the separation of the model. 
-
-- Moreover,  it implies that **rad** variable is influencing the most into cluster 1.
-
- - Next, **age** variable is the second most influential variable for the separation of the model. 
+ - After standardization, each column variables have been scaled such that mean of the column data is zero and standard deviation is 1.
  
- - **age** variable is highly likely to separate cluster 2 and 3 with respect to LD 2 axis.
+ - In bi-plot, the length of the arrow is proportional to standard deviation of features/variables.
+ 
+ - Since data is standardized, we can observe almost similar lengths in all arrows. It concludes that all variables have equal standard deviations.
+
+ - In bi-plot, Small angle implies high positive correlation.
+
+ - We can see that **Labo.FM** variable is almost orthogonal to **Edu.Exp** variable. We do not see a strong correlation between  **Edu.Exp** variable  and **Labo.FM**. That is because Expected years of schooling does not depend on Proportion of females in the labour force / Proportion of males in the labour force variable. These two variables can be considered as almost independent.
+
+ - It can be observed that there is a small angle between **Mat.Mor** and **Ado.Birth**. They are pointing to the same direction. That is due to the fact that **Ado.Birth** has a strong positive correlation with **Mat.Mor**. Maternal mortality ratio increases with Adolescent birth rate.
+ 
+ - On the other hand, **Mat.Mor** and **Ado.Birth** almost align with first principle component. It implies that they contribute to  that dimension. 
+ 
+ 
+### 5.1 Load the tea dataset from the package Factominer and explore the dataset
+
+The Factominer package contains functions dedicated to multivariate explanatory data analysis. It contains for example methods (Multiple) Correspondence analysis , Multiple Factor analysis as well as PCA.
+
+In the next exercises we are going to use the tea dataset. The dataset contains the answers of a questionnaire on tea consumption.
+
+
+```{r}
+
+
+library(FactoMineR)
+
+# load the data set from FactoMineR-package
+data("tea") 
+
+# the structure and the dimensions of the data and visualize
+str(tea)
+dim(tea)
+summary(tea)
+
+library(tidyr)
+# column names to keep in the dataset
+keep_columns <- c("Tea", "How", "how", "sugar", "where", "lunch")
+
+# select the 'keep_columns' to create a new dataset
+tea_time <- dplyr::select(tea, one_of(keep_columns))
+
+# look at the summaries and structure of the data
+summary(tea_time)
+str(tea_time)
+
+# visualize the dataset
+gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+- In the summary, we can see eigenvalues corresponding to total of  11 dimensions.
+
+### 5.2 Multiple Correspondence Analysis
+
+Multiple Correspondence Analysis (MCA) is a method to analyze qualitative data and it is an extension of Correspondence analysis (CA). MCA can be used to detect patterns or structure in the data as well as in dimension reduction.
+
+
+```{r}
+
+# multiple correspondence analysis
+mca <- MCA(tea_time, graph = FALSE)
+
+# summary of the model
+summary(mca)
+
+# visualize MCA
+plot(mca, invisible=c("ind"), habillage = "quali")
+```
+
+
+### 5.3 Interpretation of results
+
+- In the above MCA factor map,  the variables are drawn only for the first two dimensions. 
+
+- The plot above helps to identify categories that are the most correlated with each dimension. The squared correlations between categories and the dimensions are used as coordinates.
+
+- It can be seen that, the category variables **alone** and **lunch** are the most correlated with dimension 1. Similarly, the variables   **sugar** and **No.Sugar** are the most correlated with dimension 2.
+
+- Moreover, it is more likely to have **unpackaged** tea   in a **tea shop** while **tea bag** tea in **chain store**. These two pairs can be observed together in the plot.
+
+
+### 5.4 MCA with a screeplot.
+
+
+```{r}
+# draw a screeplot of the MCA 
+
+library("factoextra")
+fviz_screeplot(mca, addlabels = TRUE, ylim = c(0, 45))
+
+```
+
+- We can use screeplot to visualize the percentages of inertia explained by each MCA dimensions.
+- It can be seen that highest inertia is with dim 1 and dim-10 has the lowest inertia.
+
+### 5.5 MCA with a biplot of both individuals and categories.
+
+```{r}
+# draw a biplot of the MCA and the original variables
+
+mca <- MCA(tea_time, graph = FALSE)
+
+library("factoextra")
+# eig.val <- get_eigenvalue(mca)
+# fviz_screeplot(mca, addlabels = TRUE, ylim = c(0, 45))
+fviz_mca_biplot(mca, 
+               repel = TRUE, # Avoid text overlapping (slow if many point)
+               ggtheme = theme_minimal())
+
+```
+
+- The plot above helps to identify variables that are the most correlated with each dimension. The squared correlations between variables and the dimensions are used as coordinates.
+
+- Active individuals are in blue in the plot.
+
+- Active variable categories are in red in the plot.
+
+- Individuals such as 171,277 and 278 are strongly correlated with dim 1 where as 72,270 and 15 are strongly correlated with dim 2.
+
+<!-- ### 5.6 Correlation between categories and principal dimensions. -->
+
+
+<!-- We are going to  visualize the correlation between variables and MCA principal dimensions. -->
+
+<!-- ```{r} -->
+
+<!-- library("factoextra") -->
+<!-- fviz_mca_var(mca, choice = "mca", -->
+<!--              repel = TRUE) -->
+
+<!-- ``` -->
+
+<!-- - The plot above helps to identify variables that are the most correlated with each dimension. The squared correlations between variables and the dimensions are used as coordinates. -->
+
+<!-- - It can be seen that, the variable **sugar** is the most correlated with dimension 1. Similarly, the variable **lunch** is the most correlated with dimension 2. -->
+
+
+
+
+Reference:
+
+Datacamp : https://campus.datacamp.com/courses/helsinki-open-data-science/dimensionality-reduction-techniques
+
