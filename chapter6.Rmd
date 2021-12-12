@@ -198,25 +198,31 @@ ggplot(rats_summary, aes(x = Group, y = mean)) +
 
 - The boxplots of all groups reveal  outliers.
 
-- The distribution is more skewed where as the distribution in **Group-1** is more balanced.
+- The distribution of **Group-2** and **Group-3** are more skewed where as the distribution in **Group-1** is more balanced.
 
 
 ### Boxplots of mean summary measures without outlier
 
 ```{r}
-# rats_out <- rats %>%
-#   filter((Group == 1 & Weight < 250) | (Group == 2 & Weight > 500 ) | (Group == 3 & Weight < 500 ))
 
-ggplot(rats_summary, aes(x = Group, y = mean)) +
-  geom_boxplot(outlier.shape = NA) +
+rats_out <- rats_summary %>%
+  filter((Group==1 & mean > 250)|(Group==2 & mean < 500)| (Group==3 & mean > 500))
+
+
+ggplot(rats_out, aes(x = Group, y = mean)) +
+  geom_boxplot() +
   stat_summary(fun = "mean", geom = "point", shape=22, size=3, fill = "white") +
-  scale_y_continuous(name = "Mean Weight") 
+  scale_y_continuous(name = "Mean Weight")
+  
 ```
 
 ###  Interpretation of results : Boxplots of mean summary measures without outlier
 
-After we have removed the outlier, we do not see a significant difference between with outlier and without outlier.
+After we have removed the outliers,
 
+- The diagram indicates that the height of all boxes has reduced indicating that  variance of all groups goes down. Specially the varaince of **Group-2** is now far reduced.
+
+- The distribution in **Group-1** is now more skewed similarly to The distributions of **Group-2** and **Group-3**.
 
 ### Summary results
 
