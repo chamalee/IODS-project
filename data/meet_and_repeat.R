@@ -14,46 +14,87 @@ setwd("/Users/chamwick/Documents/ODS-R/project/IODS-project")
 # schizophrenia.
 
 # Read the BPRS data
-bprs <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/BPRS.txt", sep  =" ", header = T)
+BPRS <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/BPRS.txt", sep  =" ", header = T)
 
 # Look at the (column) names of BPRS
-names(bprs)
+names(BPRS)
 
 # Look at the structure of BPRS
-str(bprs)
-dim(bprs)
+str(BPRS)
+dim(BPRS)
 
 # print out summaries of the variables
-summary(bprs)
+summary(BPRS)
 
+write.csv(BPRS, "data/BPRSW.csv", row.names = FALSE)
 
 
 ################################################################################
 
 # Read the BPRS data
-rats <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt", sep  =" ", header = T)
+RATS <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt", sep  ="\t", header = T)
 
 # Look at the (column) names of RATS
-names(rats)
+names(RATS)
 
 # Look at the structure of RATS
-str(rats)
+str(RATS)
 
 # print out summaries of the variables
-summary(rats)
+summary(RATS)
 
-
+write.csv(RATS, "data/RATSW.csv", row.names = FALSE)
 ################################################################################
 
 library(dplyr) 
 library(tidyr)
 
+# Factor treatment & subject
+BPRS$treatment <- factor(BPRS$treatment)
+BPRS$subject <- factor(BPRS$subject)
+
+# Convert to long form
+BPRS_L <-  BPRS %>% gather(key = weeks, value = bprs, -treatment, -subject)
+
+# Extract the week number
+BPRS_L <-  BPRS_L %>% mutate(week = as.integer(substr(weeks,5,5)))
+
+# Convert to long form
+RATS_L = RATS %>% gather(key = WD, value = Weight, -ID, -Group) 
+
+# Extract the WD number
+RATS_L <-  RATS_L%>% mutate(Time = as.integer(substr(WD,3,4))) 
+
+################################################################################
+
+# Look at the difference between WIDE and LONG sets
+
+glimpse(BPRS)
+glimpse(BPRS_L)
+
+glimpse(RATS)
+glimpse(RATS_L)
 
 
+str(BPRS)
+str(BPRS_L)
+
+str(RATS)
+str(RATS_L)
 
 
+summary(BPRS)
+summary(BPRS_L)
 
+summary(RATS)
+summary(RATS_L)
 
+################################################################################
+
+write.csv(BPRS_L, "data/BPRSL.csv", row.names = FALSE)
+write.csv(RATS_L, "data/RATSL.csv", row.names = FALSE)
+
+################################################################################
 
 
 

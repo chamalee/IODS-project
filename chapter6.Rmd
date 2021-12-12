@@ -6,6 +6,33 @@
 date()
 ```
 
+#### Longitudinal data :
+
+- Many studies in the behavioral sciences involve several measurement or observations of the response variable of interest on each subject in the study. 
+
+- For example, the response variable may be measured under a number of different occasions over time.
+
+- Such data are called longitudinal data. 
+
+
+### 0. Information of RATS and BPRS dataset
+
+#### RATS Dataset: 
+
+- RATS data is extracted from a nutrition study conducted in three groups of rats (Crowder and Hand, 1990).
+
+- The three groups were put on different diets, and each animal’s body weight (grams) was recorded repeatedly (approximately weekly, except in week seven when two recordings were taken) over a 9-week period. 
+
+- The focus here is to check  whether the growth profiles of the three groups differ. 
+
+#### BPRS Dataset: 
+
+- In this BPRS dataset, 40 male subjects were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment began (week 0) and then at weekly intervals for eight weeks. 
+
+- The BPRS assesses the level of 18 symptom constructs such as hostility, suspiciousness, hallucinations and grandiosity; each of these is rated from one (not present) to seven (extremely severe).
+
+- The scale is used to evaluate patients suspected of having schizophrenia.
+
 
 ```{r message=FALSE, warning=FALSE}
 date()
@@ -15,3 +42,373 @@ library(ggplot2)
 library(tidyr)
 ```
 
+
+```{r}
+bprs = read.csv("data/BPRSL.csv", as.is = TRUE, header = TRUE, row.names = NULL)
+rats = read.csv("data/RATSL.csv", as.is = TRUE, header = TRUE, row.names = NULL)
+
+str(bprs)
+str(rats)
+```
+
+We should  factor the factorial variables again.
+
+```{r}
+
+# Factor variables ID and Group
+rats$ID <- factor(rats$ID)
+rats$Group <- factor(rats$Group)
+str(rats)
+
+# # Factor treatment & subject
+# bprs$treatment <- factor(bprs$treatment)
+# bprs$subject <- factor(bprs$subject)
+# str(bprs)
+
+```
+
+
+## Part 1: Analyses of Chapter 8 of MABS using the RATS data.
+
+
+### Graphical overview of group differences of Non-Standardized  data
+
+
+The data is based on a study conducted in three groups of rats and observed weights over time.
+Let's check the group-wise weight differences of rats.
+
+```{r}
+ggplot(rats, aes(x = Time, y = Weight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~Group, labeller = label_both) +
+  scale_y_continuous(limits = c(min(rats$Weight), max(rats$Weight)), name = "Non-standardized weights")
+```
+
+
+###  Interpretation of results
+
+We can Immediately notice that,
+
+
+ - **Group-1** rats have gained lower weights with compared to **Group-2** and **Group-3** .
+ 
+ - The rats in **Group-2** and **Group-3** achieved almost similar weights.
+ 
+
+### Standardized  data
+
+
+```{r}
+# Standardize 
+rats <- rats %>%
+  group_by(Time) %>%
+  mutate(stdWeight = (Weight - mean(Weight))/sd(Weight) ) %>%
+  ungroup()
+
+# Plot  with the standardized data
+ggplot(rats, aes(x = Time, y = stdWeight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  scale_y_continuous(name = "Standardized weights")
+
+```
+
+###  Interpretation of results
+
+Even after standardization of weights, we can Immediately notice that,
+
+ - **Group-1** rats have gained lower weights with compared to **Group-2** and **Group-3** .
+ 
+ - The rats in **Group-2** and **Group-3** achieved almost similar weights.
+ 
+
+### Summary Measure Analysis of Longitudinal Data
+
+- The summary measure method operates by transforming the repeated measurements made on each individual in the study into a single value that captures some essential feature of the individual’s response over time.
+
+- The key step to a successful summary measure analysis of longitudinal data is the choice of a relevant summary measure. 
+
+### Mean response profiles
+
+```{r}
+rats_l <- rats %>%
+  group_by(Group, Time) %>%
+  summarise(mean = mean(Weight), se = sd(Weight) /  sqrt(n())) %>%
+  ungroup()
+
+# Plot the mean profiles
+ggplot(rats_l , aes(x = Time, y = mean, linetype = Group, shape = Group, col = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
+  theme(legend.position = c(0.8,0.4)) +
+  scale_y_continuous(name = "Mean (weight) +/- se (weight)")  
+```
+
+###  Interpretation of results : Mean response profiles
+
+We can Immediately notice that,
+
+ - Mean weights of **Group-1** rats are again lower with compared to **Group-2** and **Group-3** .
+ 
+ - The rats in  **Group-3** always achieved the highest mean weights over the entire observation period.
+ 
+ - The rats in **Group-2**  achieved almost similar mean weights to **Group-3**, but lesser than **Group-3**.
+ 
+
+### Boxplots
+
+```{r}
+ggplot(rats, aes(x = as.factor(Time), y = Weight, fill = Group)) +
+  geom_boxplot(position = position_dodge(width = 0.9)) +
+  theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(legend.position = c(0.8,0.4)) +
+  scale_x_discrete(name = "Time") 
+```
+
+###  Interpretation of results : Boxplots
+
+- The boxplots of the **Group-1** and **Group-3** reveal more outliers with compared to **Group-2**.
+
+- The diagram indicates that the weight is more **variable** in **Group-2**. That is because height of boxes are higher in **Group-2** with compared to other groups. 
+
+### Boxplots of mean summary measures  
+
+```{r}
+rats_summary <- rats %>%
+  filter(Time > 1) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+
+ggplot(rats_summary, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape=22, size=3, fill = "white") +
+  scale_y_continuous(name = "Mean Weight") 
+```
+
+
+###  Interpretation of results : Boxplots of mean summary measures
+
+- The diagram indicates that the mean summary measure is more variable in **Group-2** and its distribution in this group is somewhat skew. 
+
+- The boxplots of all groups reveal  outliers.
+
+- The distribution is more skewed where as the distribution in **Group-1** is more balanced.
+
+
+### Boxplots of mean summary measures without outlier
+
+```{r}
+# rats_out <- rats %>%
+#   filter((Group == 1 & Weight < 250) | (Group == 2 & Weight > 500 ) | (Group == 3 & Weight < 500 ))
+
+ggplot(rats_summary, aes(x = Group, y = mean)) +
+  geom_boxplot(outlier.shape = NA) +
+  stat_summary(fun = "mean", geom = "point", shape=22, size=3, fill = "white") +
+  scale_y_continuous(name = "Mean Weight") 
+```
+
+###  Interpretation of results : Boxplots of mean summary measures without outlier
+
+After we have removed the outlier, we do not see a significant difference between with outlier and without outlier.
+
+
+### Summary results
+
+
+```{r}
+
+# Fit the linear model 
+fit <- lm(mean ~ Group, data = rats_summary)
+# summary of the fitted model
+summary(fit)
+anova(fit)
+```
+
+
+###  Interpretation of results
+
+- The P-value which corresponds to both **Group-2** and **Group-3** is very small. Therefore, we can conclude there is a strong correlation between the **Weight-mean** variable and both **Group-2** and **Group-3**.  P-values are as follows. Group2  ->  2.00e-07 and Group3  -> 2.90e-08. 
+
+- For the analysis of variance (ANOVA), To determine whether any of the differences between the means are statistically significant, we can compare the p-value to  significance level to assess the null hypothesis. The null hypothesis states that the population means are all equal. Usually, a significance level (denoted as α or alpha) of 0.05 works well. A significance level of 0.05 indicates a 5% risk of concluding that a difference exists when there is no actual difference.
+
+- Here small p-value indicates that a difference exists between groups of rats. The risk here is very small.
+
+## Part 2: Analyses of Chapter 9 of MABS using the BPRS data.
+
+
+### Graphical overview
+
+
+```{r}
+
+# Factor treatment & subject
+bprs$treatment <- factor(bprs$treatment)
+bprs$subject <- factor(bprs$subject)
+str(bprs)
+
+```
+
+
+
+```{r}
+bprs %>%
+  ggplot(aes(x = week, y = bprs)) +
+  geom_line(aes(linetype = subject)) +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_wrap("treatment", labeller = label_both) +
+  theme_bw() 
+  
+
+```
+
+
+###  Interpretation of results
+
+- From above plot, we can not observe significant difference between  **treatment-1** and **treatment-2**.
+
+
+### The Linear model
+
+- Here, we fit the data to a linear model with week and treatment as the variables which affects BPRS.
+
+```{r}
+# create a regression model 
+bprs_lm <- lm(bprs ~ week + treatment, data = bprs)
+# print out a summary of the model
+summary(bprs_lm)
+```
+
+###  Interpretation of results
+
+- **treatment-2** has a higher p-value which indicates independance w.r.t **bprs** variable.
+
+- The P-value which corresponds to both **week**  is very small. Therefore, we can conclude there is a strong correlation between the **week** variable and  **bprs** variable . 
+
+
+### The Random Intercept Model
+
+- Linear mixed models allow for correlations between the repeated measurements by introducing random effects for subjects.
+
+- Here, we fit the data to a random intercept model with week and treatment as the variables which affects BPRS. 
+
+- The random intercept model has two parts. It's got a fixed part (which is the intercept and the coefficient of the explanatory variable x the explanatory variable) and it's got a random part.
+
+```{r}
+# access library lme4
+library(lme4)
+
+# Create a random intercept model
+bprs_ref <- lmer(bprs ~ week + treatment + (1 | subject), data = bprs, REML = FALSE)
+
+# Print the summary of the model
+summary(bprs_ref)
+```
+
+###  Interpretation of results
+
+- We can have the attention towards variability (standard deviation) in random-part first. 
+
+- Standard deviation of Residual is higher than the standard deviation of subject.   
+ 
+ - This higher standard deviation illustrates a higher varaition in residuals.
+
+### Slippery slopes: Random Intercept and Random Slope Model
+
+- Now we can move on to fit the random intercept and random slope model to the data. 
+
+- Fitting a random intercept and random slope model allows the linear regression fits for each individual to differ in intercept but also in slope. 
+
+- This way it is possible to account for the individual differences in the subjects bprs profiles, but also the effect of time.
+
+```{r}
+# create a random intercept and random slope model
+bprs_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = bprs, REML = FALSE)
+
+# print a summary of the model
+summary(bprs_ref1)
+
+# perform an ANOVA test on the two models
+anova(bprs_ref1, bprs_ref)
+```
+
+###  Interpretation of results
+
+- Let's pay attention to the chi-squared statistics and p-value of the likelihood ratio test between **bprs_ref1** and **bprs_ref**.
+
+- The lower the value the better the fit against the comparison model.
+
+- As we can see in above table, the lower chi-squared statistics which is 0.026 indicates that the random slope and intercept model fits our data better.
+
+
+### Random Intercept and Random Slope Model with interaction
+
+Finally, we can fit a random intercept and slope model that allows for a treatment × week interaction.
+
+```{r}
+# create a random intercept and random slope model
+bprs_ref2 <-lmer(bprs ~ week * treatment + (week | subject), data = bprs, REML = FALSE)
+
+# print a summary of the model
+summary(bprs_ref2)
+
+# perform an ANOVA test on the two models
+anova(bprs_ref2, bprs_ref1)
+
+```
+
+
+###  Interpretation of results
+
+- Let's again pay attention to the chi-squared statistics and p-value of the likelihood ratio test between **bprs_ref1** and **bprs_ref2**.
+
+- The lower the value the better the fit against the comparison model.
+
+- As we can see in above table, the higher chi-squared statistics which is 0.074 indicates that the random slope and intercept model does **NOT** fit our data better.
+
+
+```{r}
+
+# Create a vector of the fitted values
+Fitted <- fitted(bprs_ref2)
+
+# Create a new column fitted to BPRS
+bprs <- bprs %>%
+  mutate(Fitted)
+
+ggplot(bprs,aes(x = week, y = bprs)) +
+  geom_line(aes(linetype = subject)) +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_wrap("treatment", labeller = label_both) +
+  theme_bw() +
+  theme(legend.position = "none")
+
+
+ggplot(bprs,aes(x = week, y = Fitted)) +
+  geom_line(aes(linetype = subject)) +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_wrap("treatment", labeller = label_both) +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+
+###  Interpretation of results
+
+- As seen in above plots, we do not see a significant difference to distinguish between **treatment-1**  and **treatment-2** .
+
+
+```{r}
+
+```
+
+
+
+
+That's the end of course! 
+Thanks to everyone!
